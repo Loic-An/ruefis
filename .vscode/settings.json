@@ -1,0 +1,6 @@
+{
+"files.autoSave": "afterDelay",
+"files.autoSaveDelay": 20,
+"rust-analyzer.check.allTargets": false,
+"rust-analyzer.check.targets": ["x86_64-unknown-uefi","aarch64-unknown-uefi"],
+}

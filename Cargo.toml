@@ -1,0 +1,12 @@
+[package]
+name = "ruefis"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "MPL-2.0"
+repository = "https://github.com/Loic-An/ruefis"
+authors = ["Loïc André <loic_an@protonmail.com>"]
+
+
+[dependencies]
+uefi = "0.23.0"
