@@ -1,27 +1,27 @@
 #![no_std]
 #![no_main]
 
-use core::{panic::PanicInfo,panic};
-use uefi::{Handle,Status,table::{Boot,SystemTable},prelude::BootServices,proto::console::gop::{PixelBitmask,GraphicsOutput}};
+use uefi::{
+    entry,
+    prelude::BootServices,
+    table::{runtime::ResetType, Boot, SystemTable},
+    Handle, Status,
+};
+use uefi_services::init;
 mod app;
+pub mod constants;
 
-#[panic_handler]
-fn panic_handler(info:&PanicInfo)-> ! {
-    panic!("{}",info)
-}
+#[entry]
+fn efi_main(image: Handle, mut st: SystemTable<Boot>) -> Status {
+    init(&mut st).unwrap();
 
-
-#[export_name = "efi_main"]
-fn efi_main(handle: Handle, system_table: &'static SystemTable<Boot>) -> Status {
     // Retrieve the graphics output protocol
-    let boot: &BootServices = system_table.boot_services();
-    let mut gop = match boot.open_protocol_exclusive::<GraphicsOutput>(handle) {
-        Ok(protocol) => protocol,
-        Err(e) => {
-            // Handle the case when the protocol is not found
-            return e.status();
-        }
-    };
+    let _boot: &BootServices = st.boot_services();
+    /*
+    let gop_handle = boot.get_handle_for_protocol::<GraphicsOutput>().unwrap();
+    let mut gop = boot
+        .open_protocol_exclusive::<GraphicsOutput>(gop_handle)
+        .unwrap();
 
     // Set video mode to the largest available resolution
     let max_mode = gop.modes().len() as u32;
@@ -33,57 +33,44 @@ fn efi_main(handle: Handle, system_table: &'static SystemTable<Boot>) -> Status 
         }
     }
 
-    if mode_info.is_none() {
-        // Handle the case when no suitable video mode is found
-        return Status::NOT_FOUND
-    }
-
     // Switch to the selected video mode
-    let active_mode = mode_info.unwrap();
-    match gop.set_mode(&active_mode) {
-        Ok(()) => {},
-        Err(e) => return e.status()
-    }
+    gop.set_mode(&mode_info.unwrap()).unwrap();
 
-    // Get the frame buffer base address and size
-    let mut frame_buffer = gop.frame_buffer();
-    let frame_buffer_base = frame_buffer.as_mut_ptr();
-
-    // Clear the screen to black
-    let i=0;
-    while i<frame_buffer.size() {
-        unsafe {frame_buffer.write_byte(i, 0) }
-    }
-
-    //for i in 0..frame_buffer_size {
-    //    if let Ok(addr) = unsafe { frame_buffer_base.add(i).as_mut() } {
-    //        *addr = pixel;
-    //    }
-    //}
-
-    // Draw a white rectangle in the center of the screen
-    let (width,height) = active_mode.info().resolution();
-    let rect_width = width / 4;
-    let rect_height = height / 4;
-    let rect_start_x = (width - rect_width) / 2;
-    let rect_start_y = (height - rect_height) / 2;
-
-    let white_pixel = PixelBitmask {
-        blue: 255,
-        green: 255,
+    //create a white colored pixel
+    let white: PixelBitmask = PixelBitmask {
         red: 255,
+        green: 255,
+        blue: 255,
         reserved: 0,
     };
+    let _mode = gop.current_mode_info();
 
-    for y in rect_start_y..(rect_start_y + rect_height) {
-        for x in rect_start_x..(rect_start_x + rect_width) {
-            if let Some(addr) = unsafe { frame_buffer_base.add(y * width + x).cast::<PixelBitmask>().as_mut() } {
-                *addr = white_pixel;
-            }
+    // Get the frame buffer base address and size
+    // and fill the screen in white
+    let mut frame_buffer: FrameBuffer = gop.frame_buffer();
+    for i in 0..frame_buffer.size() {
+        if let Some(addr) = unsafe {
+            frame_buffer
+                .as_mut_ptr()
+                .add(i)
+                .cast::<PixelBitmask>()
+                .as_mut()
+        } {
+            *addr = white
         }
     }
-    return match app::run(system_table) {
-        Ok(_) => Status::SUCCESS,
-        Err(_) => Status(1234567890)
-    };
+    // return Status::SUCCESS;
+    // app is running
+    */
+    app::run(st);
+    panic!("EOF");
+    //poweroff(st)
+}
+
+fn _poweroff(st: SystemTable<Boot>) -> ! {
+    unsafe { st.exit_boot_services().0.runtime_services() }.reset(
+        ResetType::SHUTDOWN,
+        Status::SUCCESS,
+        None,
+    )
 }

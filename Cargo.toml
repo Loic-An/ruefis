@@ -9,4 +9,6 @@ authors = ["Loïc André <loic_an@protonmail.com>"]
 
 
 [dependencies]
+micromath = "2.0.0"
 uefi = "0.23.0"
+uefi-services = "0.20.0"
